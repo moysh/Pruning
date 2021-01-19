@@ -10,7 +10,7 @@ import functools
 
 
 
-def exhf(f):
+def exhf(f): # outputs a formula equivalent to an exh expression
     prop_set=[f.prejacent]+[i for i in f.e.innocently_incl]+[~i for i in f.e.innocently_excl]
     conj=GrandConj(MaxStrong(prop_set))
     return conj
@@ -37,53 +37,31 @@ def ps(iterable): # outputs a powerset of the set of altenatives in Alt
     ch=chain.from_iterable(combinations(s, r) for r in range(1,len(s)+1))
     return [list(i) for i in ch]    
 
-
-# def Rel(Alt):
-#     univ=Universe(fs=Alt)
-#     relevant=Alt.copy()
-# #     jprint("Input Alt set: ",relevant)
-#     while True:
-#         oldrelevant=relevant.copy()
-#         relevant=relevant+[i for i in neg(relevant) if not any (univ.equivalent(i,p) for p in relevant)]
-#     #     jprint("Closure under negation: ",relevant)
-#         maxsetsbool=find_maximal_sets(univ,relevant)
-#         arcells=np.array(relevant)
-#         maxsets=[list(arcells[i]) for i in maxsetsbool]
-#         cells=[]
-#         [cells.append(GrandConj(MaxStrong(i))) for i in maxsets]
-#         #     jprint("Cells in partition: ",cells)
-#         relevant=relevant+[i for i in cells if not any(univ.equivalent(i,j) for j in relevant)]
-#         if relevant==oldrelevant:
-#             break
-#     #     relevant=DisjClose(relevant,univ)
-#     #     jprint("All unions of cells:",relevant)
-#     return relevant
-
-def GrandDisj(Alt):
+def GrandDisj(Alt): # takes a set and returns its grand disjunction
     disj=functools.reduce(lambda x,y: x|y,Alt)
     return disj
 
-def DisjClose(Alt):
+def DisjClose(Alt): # closes a set under disjunction
     pow_set=ps(Alt)
     disj_close=[]
     [disj_close.append(GrandDisj(i)) for i in pow_set]
     return disj_close
 
-def Cells(Alt):
+def Cells(Alt): # finds all the cells in the partition induced by a set of alternatives
     univ=Universe(fs=Alt)
-    laterals=Alt+neg(Alt)
-    maxsetsbool=find_maximal_sets(univ,laterals)
+    laterals=Alt+neg(Alt) # begin with a set of all alternatives an their negations
+    maxsetsbool=find_maximal_sets(univ,laterals) # find maximal consistent sets of (negations of) alternatives
     arcells=np.array(laterals)
     maxsets=[list(arcells[i]) for i in maxsetsbool]
     cells=[]
-    [cells.append(GrandConj(MaxStrong(i))) for i in maxsets]
+    [cells.append(GrandConj(MaxStrong(i))) for i in maxsets] # each cell is a grand conjunction of a maximal consistent set of (negations of) alternatives  
     return cells
 
-def Rel(Alt):
+def Rel(Alt): # finds all the unions of cells in the partition induced by a set of alternatives
     relevant=[i for i in DisjClose(Cells(Alt))]
     return relevant    
 
-def PrunRelevance(prej,Alt,subAlt):
+def PrunRelevance(prej,Alt,subAlt): # returns true only if subAlt is a licit choice of pruning given prej and Alt assuming Pruning by Relevance 
     univ=Universe(fs=Alt)
     pruned_alt=[i for i in Alt if i not in subAlt]
 #     jprint("Formal alternatives: ",Alt)
@@ -91,7 +69,7 @@ def PrunRelevance(prej,Alt,subAlt):
 #     jprint("Pruned alternatives: ",pruned_alt)
     return not any(univ.equivalent(i,j) for i in Rel(subAlt) for j in pruned_alt)
 
-def PrunExhaustiveRelevance(prej,Alt,subAlt):
+def PrunExhaustiveRelevance(prej,Alt,subAlt): # returns true only if subAlt is a licit choice of pruning given prej and Alt assuming Pruning by Exhaustive Relevance 
     univ=Universe(fs=Alt)
     pruned_alt=[i for i in Alt if i not in subAlt]
 #     jprint("Formal alternatives: ",Alt)
@@ -99,20 +77,7 @@ def PrunExhaustiveRelevance(prej,Alt,subAlt):
 #     jprint("Pruned alternatives: ",pruned_alt)
     return not any(univ.equivalent(i,Exh(j,subAlt)) for i in Rel(subAlt) for j in pruned_alt)
 
-def Prun1000ExhaustiveRelevance(prej,Alt,subAlt):
-    univ=Universe(fs=Alt)
-    pruned_alt=[i for i in Alt if i not in subAlt]
-    exh_pruned=[Exh(j,subAlt) for j in pruned_alt]
-    if not exh_pruned:
-        rel_exh_pruned=[]
-    else:
-        rel_exh_pruned=Rel(exh_pruned)
-#     jprint("Formal alternatives: ",Alt)
-#     jprint("Chosen subset: ",subAlt)
-#     jprint("Pruned alternatives: ",pruned_alt)
-    return not any(univ.equivalent(i,j) for i in Rel(pruned_alt) for j in rel_exh_pruned)
-
-def PrunSettling(prej,Alt,subAlt):
+def PrunSettling(prej,Alt,subAlt): # returns true only if subAlt is a licit choice of pruning given prej and Alt assuming Pruning by Non-settling 
     univ=Universe(fs=Alt)
     pruned_alt=[i for i in Alt if i not in subAlt]
 #     jprint("Formal alternatives: ",Alt)
@@ -120,7 +85,7 @@ def PrunSettling(prej,Alt,subAlt):
 #     jprint("Pruned alternatives: ",pruned_alt)
     return not any(univ.entails(Exh(prej,subAlt),i) or univ.entails(Exh(prej,subAlt),~i) for i in pruned_alt)
 
-def PrunWeakening(prej,Alt,subAlt):
+def PrunWeakening(prej,Alt,subAlt): # returns true only if subAlt is a licit choice of pruning given prej and Alt assuming Pruning by weakening 
     univ=Universe(fs=Alt)
     pruned_alt=[i for i in Alt if i not in subAlt]
 #     jprint("Formal alternatives: ",Alt)
@@ -128,7 +93,7 @@ def PrunWeakening(prej,Alt,subAlt):
 #     jprint("Pruned alternatives: ",pruned_alt)
     return univ.entails(Exh(prej,Alt),Exh(prej,subAlt))
 
-def PrunIEII(prej,Alt,subAlt):
+def PrunIEII(prej,Alt,subAlt): # returns true only if subAlt is a licit choice of pruning given prej and Alt assuming Pruning of exclufdable or includable alternatives 
     univ=Universe(fs=Alt)
     pruned_alt=[i for i in Alt if i not in subAlt]
 #     jprint("Formal alternatives: ",Alt)
@@ -136,7 +101,7 @@ def PrunIEII(prej,Alt,subAlt):
 #     jprint("Pruned alternatives: ",pruned_alt)
     return all(x in Exh(prej,Alt).e.innocently_incl or x in Exh(prej,Alt).e.innocently_incl for x in pruned_alt)
 
-def PossiblePrunings(prej,Alt,constraint):
+def PossiblePrunings(prej,Alt,constraint): # returns a list of all possible prunings given a prejacent, a set of alternatives, and a constraint on pruning 
     pow_alt=[i for i in ps(Alt) if prej in i]
     possible_prunings=[]
     [possible_prunings.append(i) for i in pow_alt if constraint(prej,Alt,i)]
